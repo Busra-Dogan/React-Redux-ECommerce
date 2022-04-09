@@ -1,19 +1,35 @@
-import React, { useState } from "react";
-import { app } from "../../firebase";
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { getAuth, sendSignInLinkToEmail } from "firebase/auth";
+import { useSelector } from "react-redux";
 
 
-const Register = () => {
+const Register = ({history}) => {
     const [email, setEmail] = useState("");
-    const handleSubmit = async (e) => { 
-        e.preventDeafult() 
+
+    const {user} = useSelector((state) => ({...state}));
+
+    useEffect(()=>{
+        if(user && user.token) history.push('/');
+    },[user])
+
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
         const config = {
-            url:'htpp://localhost:3000/register/complete',
-            handleCodeInApp:true
+            url: process.env.REACT_APP_REGISTER_REDIRECT_URL,
+            handleCodeInApp: true
         }
 
-        await app.sendSignInLinkToEmail(email, config)
+        const auth = getAuth();
+        sendSignInLinkToEmail(auth, email, config);
+        toast.success(`Email is sent to ${email}. Click the link to complete your registration.`);
+
+        //save user email in local storage
+        window.localStorage.setItem('emailForRegistration', email);
+
+        //clear state
+        setEmail("");
     }
     const registerForm = () => <form onSubmit={handleSubmit}>
         <input type={"email"}
@@ -21,8 +37,10 @@ const Register = () => {
             value={email}
             onChange={e => setEmail(e.target.value)}
             autoFocus
+            placeholder="Your email"
         >
         </input>
+        <br/>
         <button type="submit" className="btn btn-raised">Register</button>
     </form>
 
